@@ -314,8 +314,8 @@ with st.spinner(f"Fetching {selected_stock} data..."):
     except Exception as e:
         st.error(f"Data fetch error: {e}")
         st.stop()
-
-# ── Overview Metrics ──────────────────────────────────────────────────────────
+        
+# Metrics
 latest  = float(display_data['Close'].iloc[-1])
 prev    = float(display_data['Close'].iloc[-2])
 change  = latest - prev
