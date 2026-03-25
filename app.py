@@ -9,7 +9,7 @@ import datetime
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
-# TensorFlow imported lazily to avoid Apple Silicon mutex deadlock
+# Tensorflow imported
 
 TRAIN_START = '2020-01-01'
 LOOKBACK    = 60
