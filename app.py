@@ -17,7 +17,7 @@ LOOKBACK    = 60
 st.set_page_config(page_title="Stock Price Prediction", page_icon="📈", layout="wide")
 st.title("Stock Price Predictor")
 
-# ── Load Model ────────────────────────────────────────────────────────────────
+# Load pre-saved .keras Model
 @st.cache_resource
 def load_model():
     import tensorflow as tf
@@ -25,7 +25,7 @@ def load_model():
     path = os.path.join(os.path.dirname(__file__), 'lstm_stock_prediction_model.keras')
     return tf.keras.models.load_model(path)
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# Helper function
 
 def fetch_data(symbol, start, end):
     df = yf.download(symbol, start=start, end=end, progress=False)
@@ -37,8 +37,9 @@ def fetch_data(symbol, start, end):
     return df
 
 
-# ── Technical Indicator Functions (mathematical formulas) ─────────────────────
+# Technical Indicator functions (using mathematical formaulas)
 
+# Simple Moving Average (SMA)
 def calculate_sma(prices, period):
     """
     Formula: SMA = (P1 + P2 + ... + Pn) / n
@@ -53,7 +54,7 @@ def calculate_sma(prices, period):
             sma.append(window_sum / period)
     return np.array(sma)
 
-
+# Exponential Moving Average (EMA)
 def calculate_ema(prices, period):
     """
     Formula: EMA = Price(t) × k + EMA(y) × (1 - k)
@@ -69,7 +70,7 @@ def calculate_ema(prices, period):
             ema.append(ema_value)
     return np.array(ema)
 
-
+# Relative Strength Index (RSI)
 def calculate_rsi(prices, period=14):
     """
     Formula: RSI = 100 - [100 / (1 + RS)]
@@ -109,7 +110,7 @@ def calculate_rsi(prices, period=14):
                     rsi.append(100 - (100 / (1 + rs)))
     return np.array(rsi)
 
-
+# Moving Average Convergence Divergence (MACD)
 def calculate_macd(prices, fast_period=12, slow_period=26, signal_period=9):
     """
     Formula:
@@ -128,7 +129,7 @@ def calculate_macd(prices, fast_period=12, slow_period=26, signal_period=9):
     macd_histogram = macd_line - signal_line
     return macd_line, signal_line, macd_histogram
 
-
+# Bollinger Bands
 def calculate_bollinger_bands(prices, period=20, num_std=2):
     """
     Formula:
@@ -152,7 +153,7 @@ def calculate_bollinger_bands(prices, period=20, num_std=2):
             lower_band.append(sma[i] - (std_dev * num_std))
     return sma, np.array(upper_band), np.array(lower_band)
 
-
+# Stochastic Ocillator
 def calculate_stochastic(high, low, close, period=14, smooth_k=3):
     """
     Formula:
@@ -177,7 +178,7 @@ def calculate_stochastic(high, low, close, period=14, smooth_k=3):
     d_values = calculate_sma(k_values, smooth_k)
     return k_values, d_values
 
-
+# Average True Range (ATR)
 def calculate_atr(high, low, close, period=14):
     """
     Formula:
@@ -196,7 +197,7 @@ def calculate_atr(high, low, close, period=14):
         true_ranges.append(tr)
     return calculate_sma(np.array(true_ranges), period)
 
-
+# On Balance Volume (OBV)
 def calculate_obv(close, volume):
     """
     Formula:
@@ -269,7 +270,7 @@ def add_indicators(df):
     return df
 
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
+# Sidebar layout
 with st.sidebar:
     st.header("⚙️ Settings")
 
@@ -297,7 +298,7 @@ with st.sidebar:
 
     predict_btn = st.button("Predict", type="primary", use_container_width=True)
 
-# ── Fetch Data ────────────────────────────────────────────────────────────────
+# Fetch Data 
 with st.spinner(f"Fetching {selected_stock} data..."):
     try:
         full_data    = fetch_data(selected_stock, TRAIN_START,
@@ -329,7 +330,7 @@ c2.metric("Period High",    f"${float(display_data['High'].max()):.2f}")
 c3.metric("Period Low",     f"${float(display_data['Low'].min()):.2f}")
 c4.metric("Avg Volume",     f"{int(display_data['Volume'].mean()):,}")
 
-# ── Candlestick + Volume + Moving Averages ────────────────────────────────────
+# Candlestock + Volume + Simple moving Average chart
 ind_display = add_indicators(display_data.copy())
 
 fig_main = make_subplots(rows=2, cols=1, shared_xaxes=True,
@@ -367,7 +368,7 @@ fig_main.update_yaxes(title_text="Price (USD)", row=1, col=1)
 fig_main.update_yaxes(title_text="Volume",      row=2, col=1)
 st.plotly_chart(fig_main, use_container_width=True)
 
-# ── OHLCV Table ───────────────────────────────────────────────────────────────
+# Stock OHLCV Data Table
 st.subheader("OHLCV Data")
 ohlcv = display_data[['Date', 'Open', 'High', 'Low', 'Close', 'Volume']].copy()
 ohlcv['Date']        = pd.to_datetime(ohlcv['Date']).dt.strftime('%Y-%m-%d')
@@ -385,7 +386,7 @@ ohlcv['Change %']     = ohlcv['Change %'].apply(
 ohlcv = ohlcv.iloc[::-1].reset_index(drop=True)
 st.dataframe(ohlcv, use_container_width=True, hide_index=True, height=300)
 
-# ── Technical Indicators ──────────────────────────────────────────────────────
+# Technical Indicators tab
 st.subheader("Technical Indicators")
 
 tab_sma, tab_ema, tab_rsi, tab_macd, tab_bb, tab_stoch, tab_atr, tab_obv = st.tabs([
@@ -393,7 +394,7 @@ tab_sma, tab_ema, tab_rsi, tab_macd, tab_bb, tab_stoch, tab_atr, tab_obv = st.ta
     "  Bollinger Bands  ", "  Stochastic  ", "  ATR  ", "  OBV  "
 ])
 
-# ── SMA ───────────────────────────────────────────────────────────────────────
+# SMA
 with tab_sma:
     fig_sma = make_subplots(rows=2, cols=1, shared_xaxes=True,
                             row_heights=[0.75, 0.25], vertical_spacing=0.03)
@@ -415,7 +416,7 @@ with tab_sma:
     fig_sma.update_yaxes(title_text="Volume",      row=2, col=1)
     st.plotly_chart(fig_sma, use_container_width=True)
 
-# ── EMA ───────────────────────────────────────────────────────────────────────
+# EMA
 with tab_ema:
     fig_ema = go.Figure()
     fig_ema.add_trace(go.Scatter(x=ind_display['Date'], y=ind_display['Close'],
@@ -430,7 +431,7 @@ with tab_ema:
                           margin=dict(l=10, r=10, t=50, b=10))
     st.plotly_chart(fig_ema, use_container_width=True)
 
-# ── RSI ───────────────────────────────────────────────────────────────────────
+# RSI
 with tab_rsi:
     fig_rsi = go.Figure()
     fig_rsi.add_hrect(y0=70, y1=100, fillcolor='rgba(255,82,82,0.08)',  line_width=0)
@@ -446,7 +447,7 @@ with tab_rsi:
                           margin=dict(l=10, r=10, t=50, b=10))
     st.plotly_chart(fig_rsi, use_container_width=True)
 
-# ── MACD ──────────────────────────────────────────────────────────────────────
+# MACD
 with tab_macd:
     fig_macd = make_subplots(rows=2, cols=1, shared_xaxes=True,
                              row_heights=[0.5, 0.5], vertical_spacing=0.04)
@@ -465,7 +466,7 @@ with tab_macd:
     fig_macd.update_yaxes(title_text="MACD",        row=2, col=1)
     st.plotly_chart(fig_macd, use_container_width=True)
 
-# ── Bollinger Bands ───────────────────────────────────────────────────────────
+# Bollinger Bands
 with tab_bb:
     fig_bb = go.Figure()
     fig_bb.add_trace(go.Scatter(x=ind_display['Date'], y=ind_display['BB_Upper'],
@@ -484,7 +485,7 @@ with tab_bb:
                          margin=dict(l=10, r=10, t=50, b=10))
     st.plotly_chart(fig_bb, use_container_width=True)
 
-# ── Stochastic ────────────────────────────────────────────────────────────────
+# Stochastic Oscillator
 with tab_stoch:
     fig_stoch = make_subplots(rows=2, cols=1, shared_xaxes=True,
                               row_heights=[0.55, 0.45], vertical_spacing=0.04)
@@ -507,7 +508,7 @@ with tab_stoch:
     fig_stoch.update_yaxes(title_text="Stochastic", range=[0, 100], row=2, col=1)
     st.plotly_chart(fig_stoch, use_container_width=True) 
 
-# ── ATR 
+# ATR
 with tab_atr:
     fig_atr = make_subplots(rows=2, cols=1, shared_xaxes=True,
                             row_heights=[0.6, 0.4], vertical_spacing=0.04)
@@ -523,7 +524,7 @@ with tab_atr:
     fig_atr.update_yaxes(title_text="ATR ($)",     row=2, col=1)
     st.plotly_chart(fig_atr, use_container_width=True)
 
-# ── OBV 
+# OBV
 with tab_obv:
     fig_obv = make_subplots(rows=3, cols=1, shared_xaxes=True,
                             row_heights=[0.5, 0.25, 0.25], vertical_spacing=0.03)
@@ -541,7 +542,7 @@ with tab_obv:
     fig_obv.update_yaxes(title_text="OBV",         row=3, col=1)
     st.plotly_chart(fig_obv, use_container_width=True)
 
-# ── Predict 
+# load pre-saved model and make predictions
 if predict_btn:
     with st.spinner("Running predictions..."):
         lstm_model = load_model()
